@@ -33,11 +33,27 @@ _G.FPSBoost = true
 _G.AntiBounty = true         
 _G.SafeFlyBypass = true      
 _G.DistanciaDoInimigo = 40
+_G.FarmAteNivelMax = true
 
 -- STATS SELECIONÁVEIS
 _G.Stat_Melee = true
 _G.Stat_Defense = true
 _G.Stat_Fruit = true
+
+-- NÍVEIS MÁXIMOS POR MUNDO
+local NiveisMaximos = {
+    ["East Blue"] = 10,
+    ["Pirate Village"] = 20,
+    ["Shells Town"] = 30,
+    ["Baratie"] = 50,
+    ["Arlong Park"] = 70,
+    ["Loguetown"] = 100,
+    ["Reverse Mountain"] = 120,
+    ["Whiskey Peak"] = 150,
+    ["Grand Line"] = 200,
+    ["Ice Island"] = 250,
+    ["Marineford"] = 300
+}
 
 local NomeFicheiroConfig = "BananaKaitun_Turbo_Config.txt"
 
@@ -113,7 +129,7 @@ local function teleportar_com_bypass(cframe_destino)
             bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
             bv.Parent = root
             root.CFrame = cframe_destino
-            task.wait(0.01) -- Velocidade limite mecânica adaptativa
+            task.wait(0.01)
             bv:Destroy()
         else
             root.CFrame = cframe_destino
@@ -251,14 +267,80 @@ local function comprar_v2_automatico(estilo)
 end
 
 ------------------------------------------------------------------------
--- 6. SISTEMA DE AUTO-FARM INTEGRADO
+-- 6. SISTEMA DE MUDANÇA DE MUNDO
+------------------------------------------------------------------------
+local function obter_mundo_atual()
+    return LocalPlayer.Data.WorldName.Value or "East Blue"
+end
+
+local function obter_proximo_mundo(mundo_atual)
+    local mundos = {"East Blue", "Pirate Village", "Shells Town", "Baratie", "Arlong Park", "Loguetown", "Reverse Mountain", "Whiskey Peak", "Grand Line", "Ice Island", "Marineford"}
+    for i, m in pairs(mundos) do
+        if m == mundo_atual and mundos[i+1] then
+            return mundos[i+1]
+        end
+    end
+    return "Marineford"
+end
+
+local function fazer_quest_mudanca_mundo()
+    if not _G.AutoNewWorld then return end
+    
+    local remote = ReplicatedStorage:FindFirstChild("Remotes")
+    if remote then
+        -- Quest para trocar de mundo
+        remote:FireServer("StartWorldQuest")
+        task.wait(1)
+        remote:FireServer("CompleteWorldQuest")
+        task.wait(1)
+        EnviarNotificacaoDiscord("Mundo Trocado", "Progredindo para o próximo mundo!", 65280)
+    end
+end
+
+local function entrar_marinha()
+    if not _G.AutoNewWorld then return end
+    
+    local marineSpawn = Workspace:FindFirstChild("MarineSpawn")
+    if marineSpawn and marineSpawn:FindFirstChild("HumanoidRootPart") then
+        teleportar_com_bypass(marineSpawn.HumanoidRootPart.CFrame)
+        task.wait(0.5)
+        
+        local remote = ReplicatedStorage:FindFirstChild("Remotes")
+        if remote then
+            remote:FireServer("JoinMarine")
+            task.wait(1)
+            EnviarNotificacaoDiscord("Marinha", "Você entrou na Marinha!", 3066993)
+        end
+    end
+end
+
+------------------------------------------------------------------------
+-- 7. SISTEMA DE AUTO-FARM INTEGRADO COM PROGRESSÃO
 ------------------------------------------------------------------------
 local function executar_auto_farm()
     if not _G.AutoFarm then return end
     
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
+    local levelAtual = LocalPlayer.Data.Level.Value
+    local mundoAtual = obter_mundo_atual()
     
+    -- Distribuir stats enquanto faz farm
+    if _G.AutoSpinFruit and LocalPlayer.Data.Points.Value > 0 then
+        executar_auto_stats()
+    end
+    
+    -- Farm de GodhHuman durante o farm normal
+    if _G.AutoGodhuman and levelAtual > 50 then
+        for _, material in pairs(MateriaisGodhuman) do
+            if math.random(1, 10) > 7 then -- 30% de chance a cada ciclo
+                farm_material_godhuman(material)
+                task.wait(0.3)
+            end
+        end
+    end
+    
+    -- Loop de combate
     for _, inimigo in pairs(Workspace.Enemies:GetChildren()) do
         if inimigo:FindFirstChild("HumanoidRootPart") and inimigo.Humanoid.Health > 0 then
             local distancia = (root.Position - inimigo.HumanoidRootPart.Position).Magnitude
@@ -269,34 +351,41 @@ local function executar_auto_farm()
             end
         end
     end
-end
-
-------------------------------------------------------------------------
--- 7. LOOP PRINCIPAL
-------------------------------------------------------------------------
-local function main_loop()
-    CarregarConfiguracoes()
     
-    while true do
-        if LocalPlayer and LocalPlayer.Character then
-            if _G.AutoFarm then executar_auto_farm() end
-            if _G.AutoSpinFruit then executar_auto_stats() end
-            if _G.AutoGodhuman then
-                for _, material in pairs(MateriaisGodhuman) do
-                    farm_material_godhuman(material)
-                    task.wait(0.5)
-                end
-            end
-            if _G.AntiBounty then checar_anti_bounty() end
+    -- Verificar mudança de mundo
+    if _G.AutoNewWorld and _G.FarmAteNivelMax then
+        local nivelMax = NiveisMaximos[mundoAtual] or 300
+        if levelAtual >= nivelMax then
+            EnviarNotificacaoDiscord("🚀 Nível Máximo Atingido", "Nível: " .. levelAtual .. " | Mundo: " .. mundoAtual, 16776960)
+            fazer_quest_mudanca_mundo()
+            task.wait(2)
+            entrar_marinha()
+            task.wait(3)
         end
-        
-        SalvarConfiguracoes()
-        task.wait(1)
     end
 end
 
 ------------------------------------------------------------------------
--- 8. INICIALIZAÇÃO
+-- 8. LOOP PRINCIPAL
 ------------------------------------------------------------------------
-EnviarNotificacaoDiscord("Script Iniciado", "Banana Turbo Hub v18 foi ativado com sucesso!", 3066993)
+local function main_loop()
+    CarregarConfiguracoes()
+    EnviarNotificacaoDiscord("Script Iniciado", "Banana Turbo Hub v18 foi ativado com sucesso!", 3066993)
+    
+    while true do
+        if LocalPlayer and LocalPlayer.Character then
+            pcall(function()
+                executar_auto_farm()
+                checar_anti_bounty()
+            end)
+        end
+        
+        SalvarConfiguracoes()
+        task.wait(0.5)
+    end
+end
+
+------------------------------------------------------------------------
+-- 9. INICIALIZAÇÃO
+------------------------------------------------------------------------
 main_loop()
