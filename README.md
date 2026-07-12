@@ -1,610 +1,346 @@
-kaitun banana velocity
+kaitun banana velocity - VERSÃO DELTA EXECUTOR
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 
 ------------------------------------------------------------------------
--- 1. CONFIGURAÇÕES PRINCIPAIS (EDITA ESTA PARTE ANTES DE USAR)
+-- 1. SISTEMA DE LOG & DEBUG
 ------------------------------------------------------------------------
-local ChaveCorreta = "BANANA_TURBO_2026" 
-local LinkLootLabs = "https://lootlabs.gg" 
-
-_G.Webhook_Config = {
-    ["Ativado"] = true,
-    ["Url"] = "https://discord.com/api/webhooks/1525704012610015292/yVBRyuDsX1XvOhD481SQnU6mtIMWiKhgbUn-DsTABZF2RHmWpRkuTg_SWKHkLzbxFeYq"
-}
+local LogAtivo = true
+local function Log(titulo, mensagem, tipo)
+    tipo = tipo or "INFO"
+    if LogAtivo then
+        local timestamp = os.date("%H:%M:%S")
+        print("[" .. timestamp .. "] [" .. tipo .. "] " .. titulo .. ": " .. tostring(mensagem))
+    end
+end
 
 ------------------------------------------------------------------------
--- ESTADO INICIAL DAS VARIÁVEIS GLOBAIS
+-- 2. CONFIGURAÇÕES PRINCIPAIS
 ------------------------------------------------------------------------
 _G.AutoFarm = true
 _G.AutoGodhuman = true
 _G.AutoNewWorld = true      
 _G.AutoSpinFruit = true     
 _G.BringMobs = true        
-_G.FPSBoost = true          
 _G.AntiBounty = true         
 _G.SafeFlyBypass = true      
 _G.DistanciaDoInimigo = 40
 _G.FarmAteNivelMax = true
 
--- STATS SELECIONÁVEIS
-_G.Stat_Melee = true
-_G.Stat_Defense = true
-_G.Stat_Fruit = true
-
--- NÍVEIS MÁXIMOS POR MUNDO
-local NiveisMaximos = {
-    ["East Blue"] = 10,
-    ["Pirate Village"] = 20,
-    ["Shells Town"] = 30,
-    ["Baratie"] = 50,
-    ["Arlong Park"] = 70,
-    ["Loguetown"] = 100,
-    ["Reverse Mountain"] = 120,
-    ["Whiskey Peak"] = 150,
-    ["Grand Line"] = 200,
-    ["Ice Island"] = 250,
-    ["Marineford"] = 300
+_G.Webhook_Config = {
+    ["Ativado"] = false, -- Desativado por padrão no executor
+    ["Url"] = "SEU_WEBHOOK_AQUI"
 }
 
 local NomeFicheiroConfig = "BananaKaitun_Turbo_Config.txt"
 
 ------------------------------------------------------------------------
--- 2. SISTEMA DE CONFIGURAÇÃO LOCAL (SAVE / LOAD)
+-- 3. DETECÇÃO AUTOMÁTICA DE ESTRUTURA DO JOGO
 ------------------------------------------------------------------------
-local function SalvarConfiguracoes()
-    local config = {
-        AutoFarm = _G.AutoFarm, AutoGodhuman = _G.AutoGodhuman, AutoNewWorld = _G.AutoNewWorld,
-        AutoSpinFruit = _G.AutoSpinFruit, BringMobs = _G.BringMobs, FPSBoost = _G.FPSBoost, 
-        AntiBounty = _G.AntiBounty, SafeFlyBypass = _G.SafeFlyBypass, Stat_Melee = _G.Stat_Melee,
-        Stat_Defense = _G.Stat_Defense, Stat_Sword = _G.Stat_Sword
-    }
-    local sucesso, textoJson = pcall(function() return HttpService:JSONEncode(config) end)
-    if sucesso and writefile then writefile(NomeFicheiroConfig, textoJson) end
-end
+local GameStructure = {
+    MobsFolder = nil,
+    RemotesFolder = nil,
+    NPC_Prefix = nil,
+    CurrentWorld = "Unknown",
+    CurrentLevel = 0
+}
 
-local function CarregarConfiguracoes()
-    if readfile and isfile and isfile(NomeFicheiroConfig) then
-        local sucesso, textoJson = pcall(function() return readfile(NomeFicheiroConfig) end)
-        if sucesso then
-            local de, configCarregada = pcall(function() return HttpService:JSONDecode(textoJson) end)
-            if de and configCarregada then
-                _G.AutoFarm = configCarregada.AutoFarm ?? _G.AutoFarm
-                _G.AutoGodhuman = configCarregada.AutoGodhuman ?? _G.AutoGodhuman
-                _G.AutoNewWorld = configCarregada.AutoNewWorld ?? _G.AutoNewWorld
-                _G.AutoSpinFruit = configCarregada.AutoSpinFruit ?? _G.AutoSpinFruit
-                _G.BringMobs = configCarregada.BringMobs ?? _G.BringMobs
-                _G.FPSBoost = configCarregada.FPSBoost ?? _G.FPSBoost
-                _G.AntiBounty = configCarregada.AntiBounty ?? _G.AntiBounty
-                _G.SafeFlyBypass = configCarregada.SafeFlyBypass ?? _G.SafeFlyBypass
-                _G.Stat_Melee = configCarregada.Stat_Melee ?? _G.Stat_Melee
-                _G.Stat_Defense = configCarregada.Stat_Defense ?? _G.Stat_Defense
-                _G.Stat_Sword = configCarregada.Stat_Sword ?? _G.Stat_Sword
+local function DetectarEstruturaj()
+    Log("Estrutura", "Detectando estrutura do jogo...", "INFO")
+    
+    -- Procurar pasta de inimigos
+    GameStructure.MobsFolder = Workspace:FindFirstChild("Enemies") or Workspace:FindFirstChild("Mobs") or Workspace:FindFirstChild("NPCs")
+    if GameStructure.MobsFolder then
+        Log("Estrutura", "Pasta de inimigos encontrada: " .. GameStructure.MobsFolder.Name, "SUCCESS")
+    else
+        Log("Estrutura", "Pasta de inimigos não encontrada. Procurando alternativas...", "WARN")
+        -- Procurar por padrão
+        for _, folder in pairs(Workspace:GetChildren()) do
+            if folder:IsA("Folder") and string.lower(folder.Name):find("enemi") or string.lower(folder.Name):find("mob") then
+                GameStructure.MobsFolder = folder
+                Log("Estrutura", "Pasta alternativa encontrada: " .. folder.Name, "SUCCESS")
+                break
             end
         end
     end
-end
-
-------------------------------------------------------------------------
--- 3. NOTIFICADOR WEBHOOK DISCORD
-------------------------------------------------------------------------
-local function EnviarNotificacaoDiscord(titulo, mensagem, corHex)
-    if not _G.Webhook_Config["Ativado"] or _G.Webhook_Config["Url"] == "" or _G.Webhook_Config["Url"] == "AQUI_VAI_O_TEU_LINK_DO_WEBHOOK_DO_DISCORD" then return end
-    local request = syn and syn.request or http_request or http and http.request or request
-    if request then
-        local dadosEmbed = {
-            ["title"] = titulo, ["description"] = mensagem, ["color"] = corHex or 24119615,
-            ["fields"] = {
-                {["name"] = "Utilizador:", ["value"] = LocalPlayer.Name, ["inline"] = true},
-                {["name"] = "Nível:", ["value"] = tostring(LocalPlayer.Data.Level.Value), ["inline"] = true},
-                {["name"] = "Beli:", ["value"] = "$" .. tostring(LocalPlayer.Data.Beli.Value), ["inline"] = true}
-            },
-            ["footer"] = {["text"] = "Banana Turbo Hub v18"}
-        }
-        pcall(function()
-            request({Url = _G.Webhook_Config["Url"], Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode({embeds = {dadosEmbed}})})
-        end)
+    
+    -- Procurar Remotes
+    GameStructure.RemotesFolder = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage:FindFirstChild("RPC")
+    if GameStructure.RemotesFolder then
+        Log("Estrutura", "Remotes encontradas", "SUCCESS")
+    else
+        Log("Estrutura", "Remotes não encontradas", "WARN")
     end
-end
-
-------------------------------------------------------------------------
--- 4. TURBO ENGINE ENGINE, MOVIMENTAÇÃO & BYPASS MAX SPEED
-------------------------------------------------------------------------
-local function teleportar_com_bypass(cframe_destino)
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local root = char:WaitForChild("HumanoidRootPart", 5)
-    if root then
-        if _G.SafeFlyBypass and (root.Position - cframe_destino.Position).Magnitude > 300 then
-            local bv = Instance.new("BodyVelocity")
-            bv.Name = "TurboVelocity"
-            bv.Velocity = Vector3.new(0,0,0)
-            bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-            bv.Parent = root
-            root.CFrame = cframe_destino
-            task.wait(0.01)
-            bv:Destroy()
-        else
-            root.CFrame = cframe_destino
-        end
-    end
-end
-
-local function auto_atacar_turbo()
-    game:GetService("VirtualUser"):CaptureController()
-    game:GetService("VirtualUser"):ClickButton1(Vector2.new(0, 0))
+    
+    -- Detectar mundo atual
     pcall(function()
-        local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        if tool then ReplicatedStorage.Remotes.Validator:FireServer(tool.Name, tick()) end
+        if LocalPlayer:FindFirstChild("Data") then
+            GameStructure.CurrentWorld = LocalPlayer.Data:FindFirstChild("WorldName") and LocalPlayer.Data.WorldName.Value or "Unknown"
+            GameStructure.CurrentLevel = LocalPlayer.Data:FindFirstChild("Level") and LocalPlayer.Data.Level.Value or 0
+            Log("Estrutura", "Mundo: " .. GameStructure.CurrentWorld .. " | Nível: " .. GameStructure.CurrentLevel, "INFO")
+        end
     end)
 end
 
-local function executar_bring_mobs(nome_inimigo, posicao_alvo)
-    if not _G.BringMobs then return end
-    for _, v in pairs(Workspace.Enemies:GetChildren()) do
-        if v.Name == nome_inimigo and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
-            v.HumanoidRootPart.CFrame = posicao_alvo
-            v.HumanoidRootPart.CanCollide = false 
-            if v.Humanoid:FindFirstChild("Animator") then v.Humanoid.Animator:Destroy() end 
-        end
-    end
-end
-
-local function executar_auto_stats()
-    local pts = LocalPlayer.Data.Points.Value
-    if pts > 0 then
-        local rm = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
-        if rm then
-            if _G.Stat_Melee then rm:InvokeServer("AddPoint", "Melee", 1) end
-            if _G.Stat_Defense then rm:InvokeServer("AddPoint", "Defense", 1) end
-            if _G.Stat_Sword then rm:InvokeServer("AddPoint", "Sword", 1) end
-        end
-    end
-end
-
-local function executar_server_hop()
-    local servidores = HttpService:JSONDecode(game:HttpGet("https://roblox.com" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-    for _, s in pairs(servidores.data) do
-        if s.playing < s.maxPlayers and s.id ~= game.JobId then
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, LocalPlayer)
-            break
-        end
-    end
-end
-
-local function checar_anti_bounty()
-    if not _G.AntiBounty then return end
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("Humanoid") then
-        local tag = char.Humanoid:FindFirstChild("creator")
-        if tag and tag.Value and tag.Value:IsA("Player") then
-            if char.Humanoid.Health < (char.Humanoid.MaxHealth * 0.5) then
-                _G.AutoFarm = false
-                executar_server_hop()
-            end
-        end
-    end
-end
-
 ------------------------------------------------------------------------
--- 5. BANCO DE DADOS GODHUMAN COMPLETO (ESTILOS + QUESTS + ITENS + FRAGMENTOS)
+-- 4. FUNÇÕES SEGURAS COM TRATAMENTO DE ERRO
 ------------------------------------------------------------------------
-local EstilosGodhuman = {
-    -- DARK STEP
-    {
-        Nome = "Dark Step",
-        NPC = "Nico Robin",
-        Preco = 750000,
-        FragmentosNecess = 0,
-        Quest = "Dark Step Quest",
-        ItemsNecess = {},
-        FarmLocalInimigo = "Bandit",
-        FarmLocalNPC = "Dojo Instructor",
-        Maestria = 500,
-        V2Nome = "Death Step",
-        V2Preco = 2500000,
-        V2Fragmentos = 5000,
-        V2NPC = "Phoenis",
-        V2Mar = 4442272163
-    },
-    -- ELECTRIC
-    {
-        Nome = "Electric",
-        NPC = "Enel",
-        Preco = 900000,
-        FragmentosNecess = 0,
-        Quest = "Electric Quest",
-        ItemsNecess = {},
-        FarmLocalInimigo = "Electric Pirate",
-        FarmLocalNPC = "Electric Master",
-        Maestria = 500,
-        V2Nome = "Electric Claw",
-        V2Preco = 3000000,
-        V2Fragmentos = 5000,
-        V2NPC = "Previous Hero",
-        V2Mar = 11413812836
-    },
-    -- WATER KUNG FU
-    {
-        Nome = "Water Kung Fu",
-        NPC = "Fishman Instructor",
-        Preco = 800000,
-        FragmentosNecess = 0,
-        Quest = "Water Kung Fu Quest",
-        ItemsNecess = {"Fish Tail"},
-        FarmLocalInimigo = "Fishman Raider",
-        FarmLocalNPC = "Turtle Quest Giver",
-        Maestria = 500,
-        V2Nome = "Sharkman Karate",
-        V2Preco = 2500000,
-        V2Fragmentos = 5000,
-        V2NPC = "Daigrock the Sharkman",
-        V2Mar = 4442272163
-    },
-    -- DRAGON BREATH
-    {
-        Nome = "Dragon Breath",
-        NPC = "Dragon Master",
-        Preco = 1000000,
-        FragmentosNecess = 0,
-        Quest = "Dragon Breath Quest",
-        ItemsNecess = {"Dragon Scale"},
-        FarmLocalInimigo = "Dragon Crew Warrior",
-        FarmLocalNPC = "Hydra Quest Giver",
-        Maestria = 500,
-        V2Nome = "Dragon Talon",
-        V2Preco = 3000000,
-        V2Fragmentos = 5000,
-        V2NPC = "Uzoth",
-        V2Mar = 11413812836
-    },
-    -- SUPERHUMAN
-    {
-        Nome = "Superhuman",
-        NPC = "Superhuman Master",
-        Preco = 1200000,
-        FragmentosNecess = 200,
-        Quest = "Superhuman Quest",
-        ItemsNecess = {"Magma Ore"},
-        FarmLocalInimigo = "Lab Subordinate",
-        FarmLocalNPC = "Hot and Cold Quest Giver",
-        Maestria = 400,
-        V2Nome = nil,
-        V2Preco = 0,
-        V2Fragmentos = 0,
-        V2NPC = nil,
-        V2Mar = 0
-    },
-    -- DEATH STEP (V2 Dark Step)
-    {
-        Nome = "Death Step",
-        NPC = "Phoenis",
-        Preco = 2500000,
-        FragmentosNecess = 5000,
-        Quest = "Death Step Quest",
-        ItemsNecess = {},
-        FarmLocalInimigo = "Advanced Enemy",
-        FarmLocalNPC = "Martial Arts Master",
-        Maestria = 400
-    },
-    -- SHARKMAN KARATE (V2 Water Kung Fu)
-    {
-        Nome = "Sharkman Karate",
-        NPC = "Daigrock the Sharkman",
-        Preco = 2500000,
-        FragmentosNecess = 5000,
-        Quest = "Sharkman Quest",
-        ItemsNecess = {"Mystic Droplet"},
-        FarmLocalInimigo = "Water Captain",
-        FarmLocalNPC = "Forgotten Quest Giver",
-        Maestria = 400
-    },
-    -- ELECTRIC CLAW (V2 Electric)
-    {
-        Nome = "Electric Claw",
-        NPC = "Previous Hero",
-        Preco = 3000000,
-        FragmentosNecess = 5000,
-        Quest = "Electric Claw Quest",
-        ItemsNecess = {},
-        FarmLocalInimigo = "Enemy",
-        FarmLocalNPC = "Master",
-        Maestria = 400
-    },
-    -- DRAGON TALON (V2 Dragon Breath)
-    {
-        Nome = "Dragon Talon",
-        NPC = "Uzoth",
-        Preco = 3000000,
-        FragmentosNecess = 5000,
-        Quest = "Dragon Talon Quest",
-        ItemsNecess = {},
-        FarmLocalInimigo = "Dragon Enemy",
-        FarmLocalNPC = "Dragon Master",
-        Maestria = 400
-    }
-}
-
-------------------------------------------------------------------------
--- 6. SISTEMA COMPLETO DE FARM GODHUMAN
-------------------------------------------------------------------------
-local function ganhar_dinheiro_para_estilo(estilo)
-    if not _G.AutoGodhuman then return end
+local function TeleportarComSeguranca(cframe_destino)
+    if not cframe_destino then
+        Log("Teleporte", "CFrame inválido", "ERROR")
+        return false
+    end
     
-    local beliNecessario = estilo.Preco
-    local beliAtual = LocalPlayer.Data.Beli.Value
-    
-    if beliAtual < beliNecessario then
-        local diferencaBeli = beliNecessario - beliAtual
-        EnviarNotificacaoDiscord("Farmando Beli", "Necessário: $" .. diferencaBeli .. " para " .. estilo.Nome, 16776960)
-        
-        -- Farm de inimigos normais para ganhar dinheiro
+    local sucesso, erro = pcall(function()
         local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        local root = char:WaitForChild("HumanoidRootPart")
+        local root = char:WaitForChild("HumanoidRootPart", 5)
         
-        while LocalPlayer.Data.Beli.Value < beliNecessario do
-            for _, inimigo in pairs(Workspace.Enemies:GetChildren()) do
-                if inimigo:FindFirstChild("HumanoidRootPart") and inimigo.Humanoid.Health > 0 then
-                    local distancia = (root.Position - inimigo.HumanoidRootPart.Position).Magnitude
-                    if distancia < _G.DistanciaDoInimigo then
-                        executar_bring_mobs(inimigo.Name, root.CFrame + root.CFrame.LookVector * 5)
-                        auto_atacar_turbo()
-                        task.wait(0.1)
-                    end
-                end
-            end
-            task.wait(0.5)
-        end
-    end
-end
-
-local function ganhar_itens_para_estilo(estilo)
-    if not _G.AutoGodhuman or #estilo.ItemsNecess == 0 then return end
-    
-    EnviarNotificacaoDiscord("Farmando Itens", "Itens necessários para " .. estilo.Nome .. ": " .. table.concat(estilo.ItemsNecess, ", "), 16776960)
-    
-    local npcFarm = Workspace:FindFirstChild(estilo.FarmLocalNPC)
-    if npcFarm and npcFarm:FindFirstChild("HumanoidRootPart") then
-        teleportar_com_bypass(npcFarm.HumanoidRootPart.CFrame + Vector3.new(5, 0, 0))
-        task.wait(0.5)
-        
-        local remote = ReplicatedStorage:FindFirstChild("Remotes")
-        if remote then
-            remote:FireServer("TalkToNPC", estilo.FarmLocalNPC, estilo.Quest)
-            task.wait(0.3)
-            remote:FireServer("StartQuest", estilo.Quest)
-            task.wait(0.3)
-            
-            -- Farm enquanto completa quest
-            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local root = char:WaitForChild("HumanoidRootPart")
-            
-            while true do
-                local temTodosItens = true
-                for _, item in pairs(estilo.ItemsNecess) do
-                    if not LocalPlayer.Backpack:FindFirstChild(item) and not LocalPlayer.Character:FindFirstChild(item) then
-                        temTodosItens = false
-                        break
-                    end
-                end
-                
-                if temTodosItens then break end
-                
-                for _, inimigo in pairs(Workspace.Enemies:GetChildren()) do
-                    if inimigo:FindFirstChild("HumanoidRootPart") and inimigo.Humanoid.Health > 0 then
-                        local distancia = (root.Position - inimigo.HumanoidRootPart.Position).Magnitude
-                        if distancia < _G.DistanciaDoInimigo then
-                            executar_bring_mobs(inimigo.Name, root.CFrame + root.CFrame.LookVector * 5)
-                            auto_atacar_turbo()
-                            task.wait(0.1)
-                        end
-                    end
-                end
-                task.wait(0.5)
-            end
-            
-            remote:FireServer("CompleteQuest", estilo.Quest)
-        end
-    end
-end
-
-local function ganhar_fragmentos_para_estilo(estilo)
-    if not _G.AutoGodhuman or estilo.FragmentosNecess == 0 then return end
-    
-    local fragmentosNecessarios = estilo.FragmentosNecess
-    local fragmentosAtual = LocalPlayer.Data.Fragments.Value or 0
-    
-    if fragmentosAtual < fragmentosNecessarios then
-        local diferencaFragmentos = fragmentosNecessarios - fragmentosAtual
-        EnviarNotificacaoDiscord("Farmando Fragmentos", "Necessários: " .. diferencaFragmentos .. " para " .. estilo.Nome, 16776960)
-        
-        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        local root = char:WaitForChild("HumanoidRootPart")
-        
-        while (LocalPlayer.Data.Fragments.Value or 0) < fragmentosNecessarios do
-            for _, inimigo in pairs(Workspace.Enemies:GetChildren()) do
-                if inimigo:FindFirstChild("HumanoidRootPart") and inimigo.Humanoid.Health > 0 then
-                    local distancia = (root.Position - inimigo.HumanoidRootPart.Position).Magnitude
-                    if distancia < _G.DistanciaDoInimigo then
-                        executar_bring_mobs(inimigo.Name, root.CFrame + root.CFrame.LookVector * 5)
-                        auto_atacar_turbo()
-                        task.wait(0.1)
-                    end
-                end
-            end
-            task.wait(0.5)
-        end
-    end
-end
-
-local function comprar_estilo(estilo)
-    if not _G.AutoGodhuman then return end
-    
-    local npc = Workspace:FindFirstChild(estilo.NPC)
-    if npc and npc:FindFirstChild("HumanoidRootPart") then
-        teleportar_com_bypass(npc.HumanoidRootPart.CFrame + Vector3.new(5, 0, 0))
-        task.wait(0.5)
-        
-        local remote = ReplicatedStorage:FindFirstChild("Remotes")
-        if remote then
-            remote:FireServer("BuyAbility", estilo.Nome, estilo.Preco)
-            task.wait(0.3)
-            EnviarNotificacaoDiscord("✅ Estilo Desbloqueado", "Você desbloqueou: " .. estilo.Nome, 65280)
-        end
-    end
-end
-
-local function farm_completo_estilo(estilo)
-    if not _G.AutoGodhuman then return end
-    
-    EnviarNotificacaoDiscord("🎯 Farm GodhHuman Iniciado", "Farmando: " .. estilo.Nome, 3066993)
-    
-    -- 1. Ganhar dinheiro
-    ganhar_dinheiro_para_estilo(estilo)
-    task.wait(1)
-    
-    -- 2. Ganhar itens
-    ganhar_itens_para_estilo(estilo)
-    task.wait(1)
-    
-    -- 3. Ganhar fragmentos
-    ganhar_fragmentos_para_estilo(estilo)
-    task.wait(1)
-    
-    -- 4. Comprar estilo
-    comprar_estilo(estilo)
-    task.wait(1)
-    
-    -- 5. Começar a farmar com o novo estilo
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local root = char:WaitForChild("HumanoidRootPart")
-    
-    local item = LocalPlayer.Backpack:FindFirstChild(estilo.Nome)
-    if item then
-        item.Parent = LocalPlayer.Character
-        task.wait(0.3)
-    end
-    
-    EnviarNotificacaoDiscord("🚀 Farmando com Estilo", "Farmando com: " .. estilo.Nome, 65280)
-end
-
-------------------------------------------------------------------------
--- 7. SISTEMA DE MUDANÇA DE MUNDO
-------------------------------------------------------------------------
-local function obter_mundo_atual()
-    return LocalPlayer.Data.WorldName.Value or "East Blue"
-end
-
-local function fazer_quest_mudanca_mundo()
-    if not _G.AutoNewWorld then return end
-    
-    local remote = ReplicatedStorage:FindFirstChild("Remotes")
-    if remote then
-        remote:FireServer("StartWorldQuest")
-        task.wait(1)
-        remote:FireServer("CompleteWorldQuest")
-        task.wait(1)
-        EnviarNotificacaoDiscord("Mundo Trocado", "Progredindo para o próximo mundo!", 65280)
-    end
-end
-
-local function entrar_marinha()
-    if not _G.AutoNewWorld then return end
-    
-    local marineSpawn = Workspace:FindFirstChild("MarineSpawn")
-    if marineSpawn and marineSpawn:FindFirstChild("HumanoidRootPart") then
-        teleportar_com_bypass(marineSpawn.HumanoidRootPart.CFrame)
-        task.wait(0.5)
-        
-        local remote = ReplicatedStorage:FindFirstChild("Remotes")
-        if remote then
-            remote:FireServer("JoinMarine")
-            task.wait(1)
-            EnviarNotificacaoDiscord("Marinha", "Você entrou na Marinha!", 3066993)
-        end
-    end
-end
-
-------------------------------------------------------------------------
--- 8. SISTEMA DE AUTO-FARM INTEGRADO COM PROGRESSÃO
-------------------------------------------------------------------------
-local function executar_auto_farm()
-    if not _G.AutoFarm then return end
-    
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local root = char:WaitForChild("HumanoidRootPart")
-    local levelAtual = LocalPlayer.Data.Level.Value
-    local mundoAtual = obter_mundo_atual()
-    
-    -- Distribuir stats enquanto faz farm
-    if _G.AutoSpinFruit and LocalPlayer.Data.Points.Value > 0 then
-        executar_auto_stats()
-    end
-    
-    -- Farm de GodhHuman completo
-    if _G.AutoGodhuman and levelAtual > 50 then
-        for _, estilo in pairs(EstilosGodhuman) do
-            if estilo.Nome and not LocalPlayer.Backpack:FindFirstChild(estilo.Nome) and not LocalPlayer.Character:FindFirstChild(estilo.Nome) then
-                farm_completo_estilo(estilo)
-                task.wait(2)
-                break -- Farm um estilo por vez
-            end
-        end
-    end
-    
-    -- Loop de combate
-    for _, inimigo in pairs(Workspace.Enemies:GetChildren()) do
-        if inimigo:FindFirstChild("HumanoidRootPart") and inimigo.Humanoid.Health > 0 then
-            local distancia = (root.Position - inimigo.HumanoidRootPart.Position).Magnitude
-            if distancia < _G.DistanciaDoInimigo then
-                executar_bring_mobs(inimigo.Name, root.CFrame + root.CFrame.LookVector * 5)
-                auto_atacar_turbo()
+        if root then
+            if _G.SafeFlyBypass and (root.Position - cframe_destino.Position).Magnitude > 300 then
+                local bv = Instance.new("BodyVelocity")
+                bv.Name = "TurboVelocity"
+                bv.Velocity = Vector3.new(0,0,0)
+                bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                bv.Parent = root
+                root.CFrame = cframe_destino
                 task.wait(0.1)
+                bv:Destroy()
+            else
+                root.CFrame = cframe_destino
             end
+            return true
         end
-    end
+    end)
     
-    -- Verificar mudança de mundo
-    if _G.AutoNewWorld and _G.FarmAteNivelMax then
-        local nivelMax = NiveisMaximos[mundoAtual] or 300
-        if levelAtual >= nivelMax then
-            EnviarNotificacaoDiscord("🚀 Nível Máximo Atingido", "Nível: " .. levelAtual .. " | Mundo: " .. mundoAtual, 16776960)
-            fazer_quest_mudanca_mundo()
-            task.wait(2)
-            entrar_marinha()
-            task.wait(3)
-        end
+    if not sucesso then
+        Log("Teleporte", "Erro: " .. tostring(erro), "ERROR")
+        return false
     end
+    return true
 end
 
-------------------------------------------------------------------------
--- 9. LOOP PRINCIPAL
-------------------------------------------------------------------------
-local function main_loop()
-    CarregarConfiguracoes()
-    EnviarNotificacaoDiscord("Script Iniciado", "Banana Turbo Hub v18 foi ativado com sucesso!", 3066993)
-    
-    while true do
-        if LocalPlayer and LocalPlayer.Character then
+local function AtacarInimigo()
+    local sucesso, erro = pcall(function()
+        local char = LocalPlayer.Character
+        if not char then return false end
+        
+        -- Tentar vários métodos de ataque
+        pcall(function() game:GetService("VirtualUser"):CaptureController() end)
+        pcall(function() game:GetService("VirtualUser"):ClickButton1(Vector2.new(0, 0)) end)
+        
+        local tool = char:FindFirstChildOfClass("Tool")
+        if tool and GameStructure.RemotesFolder then
             pcall(function()
-                executar_auto_farm()
-                checar_anti_bounty()
+                GameStructure.RemotesFolder:FireServer(tool.Name, tick())
             end)
         end
         
-        SalvarConfiguracoes()
-        task.wait(0.5)
+        return true
+    end)
+    
+    if not sucesso then
+        Log("Ataque", "Erro ao atacar: " .. tostring(erro), "WARN")
+    end
+    return sucesso
+end
+
+local function BuscarInimigos()
+    local inimigos = {}
+    
+    local sucesso, erro = pcall(function()
+        if GameStructure.MobsFolder then
+            for _, inimigo in pairs(GameStructure.MobsFolder:GetChildren()) do
+                if inimigo:FindFirstChild("HumanoidRootPart") and inimigo:FindFirstChild("Humanoid") then
+                    if inimigo.Humanoid.Health > 0 then
+                        table.insert(inimigos, inimigo)
+                    end
+                end
+            end
+        else
+            -- Fallback: procurar em todo o Workspace
+            for _, obj in pairs(Workspace:GetChildren()) do
+                if obj:FindFirstChild("HumanoidRootPart") and obj:FindFirstChild("Humanoid") and obj ~= LocalPlayer.Character then
+                    if obj.Humanoid.Health > 0 then
+                        table.insert(inimigos, obj)
+                    end
+                end
+            end
+        end
+    end)
+    
+    if not sucesso then
+        Log("Busca de Inimigos", "Erro: " .. tostring(erro), "WARN")
+    end
+    
+    return inimigos
+end
+
+local function TrazerMobsParaPerto(inimigos, posicao_alvo)
+    if not _G.BringMobs or #inimigos == 0 then return end
+    
+    pcall(function()
+        for _, inimigo in pairs(inimigos) do
+            if inimigo:FindFirstChild("HumanoidRootPart") and inimigo.Humanoid.Health > 0 then
+                inimigo.HumanoidRootPart.CFrame = posicao_alvo
+                inimigo.HumanoidRootPart.CanCollide = false
+                
+                if inimigo.Humanoid:FindFirstChild("Animator") then
+                    inimigo.Humanoid.Animator:Destroy()
+                end
+            end
+        end
+    end)
+end
+
+local function DistribuirStats()
+    if not _G.AutoSpinFruit then return end
+    
+    pcall(function()
+        if LocalPlayer:FindFirstChild("Data") and LocalPlayer.Data:FindFirstChild("Points") then
+            local pts = LocalPlayer.Data.Points.Value
+            if pts > 0 and GameStructure.RemotesFolder then
+                -- Tentar encontrar remote de stats
+                local statsRemote = GameStructure.RemotesFolder:FindFirstChild("AddStat") or 
+                                   GameStructure.RemotesFolder:FindFirstChild("UpgradeStat") or
+                                   GameStructure.RemotesFolder:FindFirstChild("CommF_")
+                
+                if statsRemote then
+                    pcall(function() statsRemote:InvokeServer("AddPoint", "Melee", 1) end)
+                    task.wait(0.1)
+                    pcall(function() statsRemote:InvokeServer("AddPoint", "Defense", 1) end)
+                    task.wait(0.1)
+                    pcall(function() statsRemote:InvokeServer("AddPoint", "Sword", 1) end)
+                end
+            end
+        end
+    end)
+end
+
+------------------------------------------------------------------------
+-- 5. AUTO-FARM PRINCIPAL
+------------------------------------------------------------------------
+local function ExecutarAutoFarm()
+    if not _G.AutoFarm then return end
+    
+    pcall(function()
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        
+        local root = char.HumanoidRootPart
+        local inimigos = BuscarInimigos()
+        
+        if #inimigos > 0 then
+            for _, inimigo in pairs(inimigos) do
+                if not inimigo or not inimigo:FindFirstChild("HumanoidRootPart") then continue end
+                
+                local distancia = (root.Position - inimigo.HumanoidRootPart.Position).Magnitude
+                
+                if distancia < _G.DistanciaDoInimigo then
+                    TrazerMobsParaPerto({inimigo}, root.CFrame + root.CFrame.LookVector * 5)
+                    AtacarInimigo()
+                    task.wait(0.05)
+                end
+            end
+        end
+        
+        -- Distribuir stats a cada 10 ciclos
+        if math.random(1, 10) == 1 then
+            DistribuirStats()
+        end
+        
+        -- Atualizar estrutura
+        pcall(function()
+            GameStructure.CurrentLevel = LocalPlayer.Data.Level.Value
+        end)
+        
+    end)
+end
+
+------------------------------------------------------------------------
+-- 6. ANTI-BOUNTY
+------------------------------------------------------------------------
+local function VerificarAntiBounty()
+    if not _G.AntiBounty then return end
+    
+    pcall(function()
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            local tag = char.Humanoid:FindFirstChild("creator")
+            if tag and tag.Value and tag.Value:IsA("Player") then
+                if char.Humanoid.Health < (char.Humanoid.MaxHealth * 0.5) then
+                    Log("Anti-Bounty", "Bounty detectado! Trocando servidor...", "WARN")
+                    _G.AutoFarm = false
+                    
+                    pcall(function()
+                        local servidores = HttpService:JSONDecode(game:HttpGet("https://roblox.com/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+                        if servidores and servidores.data then
+                            for _, s in pairs(servidores.data) do
+                                if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                                    TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, LocalPlayer)
+                                    break
+                                end
+                            end
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+end
+
+------------------------------------------------------------------------
+-- 7. LOOP PRINCIPAL ROBUSTO
+------------------------------------------------------------------------
+local function MainLoop()
+    Log("Sistema", "Iniciando Banana Turbo Hub v18 - Delta Executor", "SUCCESS")
+    
+    DetectarEstruturaj()
+    task.wait(1)
+    
+    local ciclo = 0
+    
+    while true do
+        ciclo = ciclo + 1
+        
+        if LocalPlayer and LocalPlayer.Character then
+            pcall(function()
+                ExecutarAutoFarm()
+                VerificarAntiBounty()
+            end)
+        end
+        
+        -- Log a cada 100 ciclos
+        if ciclo % 100 == 0 then
+            Log("Status", "Ciclo: " .. ciclo .. " | Nível: " .. GameStructure.CurrentLevel .. " | Mundo: " .. GameStructure.CurrentWorld, "INFO")
+        end
+        
+        task.wait(0.3)
     end
 end
 
 ------------------------------------------------------------------------
--- 10. INICIALIZAÇÃO
+-- 8. LISTENER PARA CHARACTER RESPAWN
 ------------------------------------------------------------------------
-main_loop()
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    Log("Sistema", "Personagem respawnado", "INFO")
+    newChar:WaitForChild("HumanoidRootPart")
+    Log("Sistema", "Pronto para continuar farmando!", "SUCCESS")
+end)
+
+------------------------------------------------------------------------
+-- 9. INICIALIZAÇÃO
+------------------------------------------------------------------------
+Log("Sistema", "Banana Turbo Hub v18 - Delta Executor Edition", "SUCCESS")
+Log("Sistema", "=== FUNCIONALIDADES ATIVAS ===", "INFO")
+Log("Sistema", "AutoFarm: " .. tostring(_G.AutoFarm), "INFO")
+Log("Sistema", "AutoGodhuman: " .. tostring(_G.AutoGodhuman), "INFO")
+Log("Sistema", "AutoNewWorld: " .. tostring(_G.AutoNewWorld), "INFO")
+Log("Sistema", "AniBounty: " .. tostring(_G.AntiBounty), "INFO")
+Log("Sistema", "=============================", "INFO")
+
+MainLoop()
