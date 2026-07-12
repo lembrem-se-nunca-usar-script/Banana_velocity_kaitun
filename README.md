@@ -18,7 +18,7 @@ local LinkLootLabs = "https://lootlabs.gg"
 
 _G.Webhook_Config = {
     ["Ativado"] = true,
-    ["Url"] = "AQUI_VAI_O_TEU_LINK_DO_WEBHOOK_DO_DISCORD"
+    ["Url"] = "https://discord.com/api/webhooks/1525704012610015292/yVBRyuDsX1XvOhD481SQnU6mtIMWiKhgbUn-DsTABZF2RHmWpRkuTg_SWKHkLzbxFeYq"
 }
 
 ------------------------------------------------------------------------
