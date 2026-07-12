@@ -194,93 +194,312 @@ local function checar_anti_bounty()
 end
 
 ------------------------------------------------------------------------
--- 5. MECÂNICA DE GODHUMAN INTELIGENTE E COMPRA DE V2 AUTOMÁTICA
+-- 5. BANCO DE DADOS GODHUMAN COMPLETO (ESTILOS + QUESTS + ITENS + FRAGMENTOS)
 ------------------------------------------------------------------------
-local MetasMaestria = {
-    ["Dark Step"] = 500, ["Electric"] = 500, ["Water Kung Fu"] = 500, ["Dragon Breath"] = 500,
-    ["Superhuman"] = 400, ["Death Step"] = 400, ["Sharkman Karate"] = 400, ["Electric Claw"] = 400, ["Dragon Talon"] = 400
+local EstilosGodhuman = {
+    -- DARK STEP
+    {
+        Nome = "Dark Step",
+        NPC = "Nico Robin",
+        Preco = 750000,
+        FragmentosNecess = 0,
+        Quest = "Dark Step Quest",
+        ItemsNecess = {},
+        FarmLocalInimigo = "Bandit",
+        FarmLocalNPC = "Dojo Instructor",
+        Maestria = 500,
+        V2Nome = "Death Step",
+        V2Preco = 2500000,
+        V2Fragmentos = 5000,
+        V2NPC = "Phoenis",
+        V2Mar = 4442272163
+    },
+    -- ELECTRIC
+    {
+        Nome = "Electric",
+        NPC = "Enel",
+        Preco = 900000,
+        FragmentosNecess = 0,
+        Quest = "Electric Quest",
+        ItemsNecess = {},
+        FarmLocalInimigo = "Electric Pirate",
+        FarmLocalNPC = "Electric Master",
+        Maestria = 500,
+        V2Nome = "Electric Claw",
+        V2Preco = 3000000,
+        V2Fragmentos = 5000,
+        V2NPC = "Previous Hero",
+        V2Mar = 11413812836
+    },
+    -- WATER KUNG FU
+    {
+        Nome = "Water Kung Fu",
+        NPC = "Fishman Instructor",
+        Preco = 800000,
+        FragmentosNecess = 0,
+        Quest = "Water Kung Fu Quest",
+        ItemsNecess = {"Fish Tail"},
+        FarmLocalInimigo = "Fishman Raider",
+        FarmLocalNPC = "Turtle Quest Giver",
+        Maestria = 500,
+        V2Nome = "Sharkman Karate",
+        V2Preco = 2500000,
+        V2Fragmentos = 5000,
+        V2NPC = "Daigrock the Sharkman",
+        V2Mar = 4442272163
+    },
+    -- DRAGON BREATH
+    {
+        Nome = "Dragon Breath",
+        NPC = "Dragon Master",
+        Preco = 1000000,
+        FragmentosNecess = 0,
+        Quest = "Dragon Breath Quest",
+        ItemsNecess = {"Dragon Scale"},
+        FarmLocalInimigo = "Dragon Crew Warrior",
+        FarmLocalNPC = "Hydra Quest Giver",
+        Maestria = 500,
+        V2Nome = "Dragon Talon",
+        V2Preco = 3000000,
+        V2Fragmentos = 5000,
+        V2NPC = "Uzoth",
+        V2Mar = 11413812836
+    },
+    -- SUPERHUMAN
+    {
+        Nome = "Superhuman",
+        NPC = "Superhuman Master",
+        Preco = 1200000,
+        FragmentosNecess = 200,
+        Quest = "Superhuman Quest",
+        ItemsNecess = {"Magma Ore"},
+        FarmLocalInimigo = "Lab Subordinate",
+        FarmLocalNPC = "Hot and Cold Quest Giver",
+        Maestria = 400,
+        V2Nome = nil,
+        V2Preco = 0,
+        V2Fragmentos = 0,
+        V2NPC = nil,
+        V2Mar = 0
+    },
+    -- DEATH STEP (V2 Dark Step)
+    {
+        Nome = "Death Step",
+        NPC = "Phoenis",
+        Preco = 2500000,
+        FragmentosNecess = 5000,
+        Quest = "Death Step Quest",
+        ItemsNecess = {},
+        FarmLocalInimigo = "Advanced Enemy",
+        FarmLocalNPC = "Martial Arts Master",
+        Maestria = 400
+    },
+    -- SHARKMAN KARATE (V2 Water Kung Fu)
+    {
+        Nome = "Sharkman Karate",
+        NPC = "Daigrock the Sharkman",
+        Preco = 2500000,
+        FragmentosNecess = 5000,
+        Quest = "Sharkman Quest",
+        ItemsNecess = {"Mystic Droplet"},
+        FarmLocalInimigo = "Water Captain",
+        FarmLocalNPC = "Forgotten Quest Giver",
+        Maestria = 400
+    },
+    -- ELECTRIC CLAW (V2 Electric)
+    {
+        Nome = "Electric Claw",
+        NPC = "Previous Hero",
+        Preco = 3000000,
+        FragmentosNecess = 5000,
+        Quest = "Electric Claw Quest",
+        ItemsNecess = {},
+        FarmLocalInimigo = "Enemy",
+        FarmLocalNPC = "Master",
+        Maestria = 400
+    },
+    -- DRAGON TALON (V2 Dragon Breath)
+    {
+        Nome = "Dragon Talon",
+        NPC = "Uzoth",
+        Preco = 3000000,
+        FragmentosNecess = 5000,
+        Quest = "Dragon Talon Quest",
+        ItemsNecess = {},
+        FarmLocalInimigo = "Dragon Enemy",
+        FarmLocalNPC = "Dragon Master",
+        Maestria = 400
+    }
 }
 
-local EvolucaoEstilosV2 = {
-    ["Dark Step"] = {V2Nome = "Death Step", PrecoBeli = 2500000, PrecoFrag = 5000, NPCNome = "Phoenis", MarRequisito = 4442272163},
-    ["Electric"] = {V2Nome = "Electric Claw", PrecoBeli = 3000000, PrecoFrag = 5000, NPCNome = "Previous Hero", MarRequisito = 11413812836},
-    ["Water Kung Fu"] = {V2Nome = "Sharkman Karate", PrecoBeli = 2500000, PrecoFrag = 5000, NPCNome = "Daigrock the Sharkman", MarRequisito = 4442272163},
-    ["Dragon Breath"] = {V2Nome = "Dragon Talon", PrecoBeli = 3000000, PrecoFrag = 5000, NPCNome = "Uzoth", MarRequisito = 11413812836}
-}
-
-local MateriaisGodhuman = {
-    {Nome = "Fish Tail",       Meta = 20, InimigoFarm = "Fishman Raider",      NPCQuest = "Turtle Quest Giver", QuestNome = "FloatingTurtleQuest1", ID = 1},
-    {Nome = "Magma Ore",       Meta = 20, InimigoFarm = "Lab Subordinate",     NPCQuest = "Hot and Cold Quest Giver", QuestNome = "FireQuest", ID = 1},
-    {Nome = "Dragon Scale",    Meta = 10, InimigoFarm = "Dragon Crew Warrior", NPCQuest = "Hydra Quest Giver", QuestNome = "HydraIslandQuest", ID = 1},
-    {Nome = "Mystic Droplet",  Meta = 10, InimigoFarm = "Water Captain",       NPCQuest = "Forgotten Quest Giver", QuestNome = "ForgottenQuest", ID = 2}
-}
-
-local function verificar_e_equipar_estilo_para_maestria()
-    local bp = LocalPlayer:FindFirstChild("Backpack") or LocalPlayer:FindFirstChild("Data")
-    for nome_estilo, meta in pairs(MetasMaestria) do
-        local item = bp:FindFirstChild(nome_estilo)
-        if item then
-            item.Parent = LocalPlayer.Character
-            task.wait(0.2)
-        end
-    end
-end
-
-local function farm_material_godhuman(material)
+------------------------------------------------------------------------
+-- 6. SISTEMA COMPLETO DE FARM GODHUMAN
+------------------------------------------------------------------------
+local function ganhar_dinheiro_para_estilo(estilo)
     if not _G.AutoGodhuman then return end
-    local inimigo = material.InimigoFarm
-    local posicaoFarm = Workspace:FindFirstChild(inimigo)
     
-    if posicaoFarm and posicaoFarm:FindFirstChild("HumanoidRootPart") then
-        local npcQuest = Workspace:FindFirstChild(material.NPCQuest)
-        if npcQuest then
-            teleportar_com_bypass(npcQuest.HumanoidRootPart.CFrame + Vector3.new(5, 0, 0))
-            task.wait(0.5)
-            
-            local remote = ReplicatedStorage:FindFirstChild("Remotes")
-            if remote then
-                remote:FireServer("TalkToNPC", material.NPCQuest, material.QuestNome)
-                task.wait(0.3)
-                remote:FireServer("StartQuest", material.QuestNome)
+    local beliNecessario = estilo.Preco
+    local beliAtual = LocalPlayer.Data.Beli.Value
+    
+    if beliAtual < beliNecessario then
+        local diferencaBeli = beliNecessario - beliAtual
+        EnviarNotificacaoDiscord("Farmando Beli", "Necessário: $" .. diferencaBeli .. " para " .. estilo.Nome, 16776960)
+        
+        -- Farm de inimigos normais para ganhar dinheiro
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local root = char:WaitForChild("HumanoidRootPart")
+        
+        while LocalPlayer.Data.Beli.Value < beliNecessario do
+            for _, inimigo in pairs(Workspace.Enemies:GetChildren()) do
+                if inimigo:FindFirstChild("HumanoidRootPart") and inimigo.Humanoid.Health > 0 then
+                    local distancia = (root.Position - inimigo.HumanoidRootPart.Position).Magnitude
+                    if distancia < _G.DistanciaDoInimigo then
+                        executar_bring_mobs(inimigo.Name, root.CFrame + root.CFrame.LookVector * 5)
+                        auto_atacar_turbo()
+                        task.wait(0.1)
+                    end
+                end
             end
+            task.wait(0.5)
         end
     end
 end
 
-local function comprar_v2_automatico(estilo)
-    if not _G.AutoGodhuman then return end
-    local evolucao = EvolucaoEstilosV2[estilo]
-    if not evolucao then return end
+local function ganhar_itens_para_estilo(estilo)
+    if not _G.AutoGodhuman or #estilo.ItemsNecess == 0 then return end
     
-    local npc = Workspace:FindFirstChild(evolucao.NPCNome)
-    if npc and npc:FindFirstChild("HumanoidRootPart") then
-        teleportar_com_bypass(npc.HumanoidRootPart.CFrame + Vector3.new(5, 0, 0))
-        task.wait(0.4)
+    EnviarNotificacaoDiscord("Farmando Itens", "Itens necessários para " .. estilo.Nome .. ": " .. table.concat(estilo.ItemsNecess, ", "), 16776960)
+    
+    local npcFarm = Workspace:FindFirstChild(estilo.FarmLocalNPC)
+    if npcFarm and npcFarm:FindFirstChild("HumanoidRootPart") then
+        teleportar_com_bypass(npcFarm.HumanoidRootPart.CFrame + Vector3.new(5, 0, 0))
+        task.wait(0.5)
         
         local remote = ReplicatedStorage:FindFirstChild("Remotes")
         if remote then
-            remote:FireServer("BuyAbility", evolucao.V2Nome, evolucao.PrecoBeli)
+            remote:FireServer("TalkToNPC", estilo.FarmLocalNPC, estilo.Quest)
             task.wait(0.3)
-            EnviarNotificacaoDiscord("V2 Desbloqueado", "Você desbloqueou: " .. evolucao.V2Nome, 65280)
+            remote:FireServer("StartQuest", estilo.Quest)
+            task.wait(0.3)
+            
+            -- Farm enquanto completa quest
+            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local root = char:WaitForChild("HumanoidRootPart")
+            
+            while true do
+                local temTodosItens = true
+                for _, item in pairs(estilo.ItemsNecess) do
+                    if not LocalPlayer.Backpack:FindFirstChild(item) and not LocalPlayer.Character:FindFirstChild(item) then
+                        temTodosItens = false
+                        break
+                    end
+                end
+                
+                if temTodosItens then break end
+                
+                for _, inimigo in pairs(Workspace.Enemies:GetChildren()) do
+                    if inimigo:FindFirstChild("HumanoidRootPart") and inimigo.Humanoid.Health > 0 then
+                        local distancia = (root.Position - inimigo.HumanoidRootPart.Position).Magnitude
+                        if distancia < _G.DistanciaDoInimigo then
+                            executar_bring_mobs(inimigo.Name, root.CFrame + root.CFrame.LookVector * 5)
+                            auto_atacar_turbo()
+                            task.wait(0.1)
+                        end
+                    end
+                end
+                task.wait(0.5)
+            end
+            
+            remote:FireServer("CompleteQuest", estilo.Quest)
         end
     end
 end
 
+local function ganhar_fragmentos_para_estilo(estilo)
+    if not _G.AutoGodhuman or estilo.FragmentosNecess == 0 then return end
+    
+    local fragmentosNecessarios = estilo.FragmentosNecess
+    local fragmentosAtual = LocalPlayer.Data.Fragments.Value or 0
+    
+    if fragmentosAtual < fragmentosNecessarios then
+        local diferencaFragmentos = fragmentosNecessarios - fragmentosAtual
+        EnviarNotificacaoDiscord("Farmando Fragmentos", "Necessários: " .. diferencaFragmentos .. " para " .. estilo.Nome, 16776960)
+        
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local root = char:WaitForChild("HumanoidRootPart")
+        
+        while (LocalPlayer.Data.Fragments.Value or 0) < fragmentosNecessarios do
+            for _, inimigo in pairs(Workspace.Enemies:GetChildren()) do
+                if inimigo:FindFirstChild("HumanoidRootPart") and inimigo.Humanoid.Health > 0 then
+                    local distancia = (root.Position - inimigo.HumanoidRootPart.Position).Magnitude
+                    if distancia < _G.DistanciaDoInimigo then
+                        executar_bring_mobs(inimigo.Name, root.CFrame + root.CFrame.LookVector * 5)
+                        auto_atacar_turbo()
+                        task.wait(0.1)
+                    end
+                end
+            end
+            task.wait(0.5)
+        end
+    end
+end
+
+local function comprar_estilo(estilo)
+    if not _G.AutoGodhuman then return end
+    
+    local npc = Workspace:FindFirstChild(estilo.NPC)
+    if npc and npc:FindFirstChild("HumanoidRootPart") then
+        teleportar_com_bypass(npc.HumanoidRootPart.CFrame + Vector3.new(5, 0, 0))
+        task.wait(0.5)
+        
+        local remote = ReplicatedStorage:FindFirstChild("Remotes")
+        if remote then
+            remote:FireServer("BuyAbility", estilo.Nome, estilo.Preco)
+            task.wait(0.3)
+            EnviarNotificacaoDiscord("✅ Estilo Desbloqueado", "Você desbloqueou: " .. estilo.Nome, 65280)
+        end
+    end
+end
+
+local function farm_completo_estilo(estilo)
+    if not _G.AutoGodhuman then return end
+    
+    EnviarNotificacaoDiscord("🎯 Farm GodhHuman Iniciado", "Farmando: " .. estilo.Nome, 3066993)
+    
+    -- 1. Ganhar dinheiro
+    ganhar_dinheiro_para_estilo(estilo)
+    task.wait(1)
+    
+    -- 2. Ganhar itens
+    ganhar_itens_para_estilo(estilo)
+    task.wait(1)
+    
+    -- 3. Ganhar fragmentos
+    ganhar_fragmentos_para_estilo(estilo)
+    task.wait(1)
+    
+    -- 4. Comprar estilo
+    comprar_estilo(estilo)
+    task.wait(1)
+    
+    -- 5. Começar a farmar com o novo estilo
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    
+    local item = LocalPlayer.Backpack:FindFirstChild(estilo.Nome)
+    if item then
+        item.Parent = LocalPlayer.Character
+        task.wait(0.3)
+    end
+    
+    EnviarNotificacaoDiscord("🚀 Farmando com Estilo", "Farmando com: " .. estilo.Nome, 65280)
+end
+
 ------------------------------------------------------------------------
--- 6. SISTEMA DE MUDANÇA DE MUNDO
+-- 7. SISTEMA DE MUDANÇA DE MUNDO
 ------------------------------------------------------------------------
 local function obter_mundo_atual()
     return LocalPlayer.Data.WorldName.Value or "East Blue"
-end
-
-local function obter_proximo_mundo(mundo_atual)
-    local mundos = {"East Blue", "Pirate Village", "Shells Town", "Baratie", "Arlong Park", "Loguetown", "Reverse Mountain", "Whiskey Peak", "Grand Line", "Ice Island", "Marineford"}
-    for i, m in pairs(mundos) do
-        if m == mundo_atual and mundos[i+1] then
-            return mundos[i+1]
-        end
-    end
-    return "Marineford"
 end
 
 local function fazer_quest_mudanca_mundo()
@@ -288,7 +507,6 @@ local function fazer_quest_mudanca_mundo()
     
     local remote = ReplicatedStorage:FindFirstChild("Remotes")
     if remote then
-        -- Quest para trocar de mundo
         remote:FireServer("StartWorldQuest")
         task.wait(1)
         remote:FireServer("CompleteWorldQuest")
@@ -315,7 +533,7 @@ local function entrar_marinha()
 end
 
 ------------------------------------------------------------------------
--- 7. SISTEMA DE AUTO-FARM INTEGRADO COM PROGRESSÃO
+-- 8. SISTEMA DE AUTO-FARM INTEGRADO COM PROGRESSÃO
 ------------------------------------------------------------------------
 local function executar_auto_farm()
     if not _G.AutoFarm then return end
@@ -330,12 +548,13 @@ local function executar_auto_farm()
         executar_auto_stats()
     end
     
-    -- Farm de GodhHuman durante o farm normal
+    -- Farm de GodhHuman completo
     if _G.AutoGodhuman and levelAtual > 50 then
-        for _, material in pairs(MateriaisGodhuman) do
-            if math.random(1, 10) > 7 then -- 30% de chance a cada ciclo
-                farm_material_godhuman(material)
-                task.wait(0.3)
+        for _, estilo in pairs(EstilosGodhuman) do
+            if estilo.Nome and not LocalPlayer.Backpack:FindFirstChild(estilo.Nome) and not LocalPlayer.Character:FindFirstChild(estilo.Nome) then
+                farm_completo_estilo(estilo)
+                task.wait(2)
+                break -- Farm um estilo por vez
             end
         end
     end
@@ -366,7 +585,7 @@ local function executar_auto_farm()
 end
 
 ------------------------------------------------------------------------
--- 8. LOOP PRINCIPAL
+-- 9. LOOP PRINCIPAL
 ------------------------------------------------------------------------
 local function main_loop()
     CarregarConfiguracoes()
@@ -386,6 +605,6 @@ local function main_loop()
 end
 
 ------------------------------------------------------------------------
--- 9. INICIALIZAÇÃO
+-- 10. INICIALIZAÇÃO
 ------------------------------------------------------------------------
 main_loop()
