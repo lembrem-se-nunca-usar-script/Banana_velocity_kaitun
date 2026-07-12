@@ -199,5 +199,104 @@ local MateriaisGodhuman = {
     {Nome = "Mystic Droplet",  Meta = 10, InimigoFarm = "Water Captain",       NPCQuest = "Forgotten Quest Giver", QuestNome = "ForgottenQuest", ID = 2}
 }
 
-local function verificar_e_equipar_estilo_para_maestria()local bp = LocalPlayer:FindFirstChild("Backpack") or LocalPlayer:FindFirstChild("Data")for nome_estilo, meta in pairs(MetasMaestria) dolocal item = bp:FindFirstChild(nome_estilo)if item thenlocal lvl = item:FindFirstChild("Level") and item.Level.Value or 0if lvl < meta then return nome_estilo endendendreturn nilendlocal function obter_material_em_falta()local material_folder = LocalPlayer.Data:FindFirstChild("Materials")if not material_folder then return nil endfor _, mat in pairs(MateriaisGodhuman) dolocal qtd_atual = material_folder:FindFirstChild(mat.Nome) and material_folder[mat.Nome].Value or 0if qtd_atual < mat.Meta then return mat endendreturn nilendlocal function verificar_e_comprar_v2_imediato()if not G.AutoGodhuman then return false endlocal bp = LocalPlayer:FindFirstChild("Backpack") or LocalPlayer:FindFirstChild("Data")for v1_nome, d in pairs(EvolucaoEstilosV2) dolocal item_v1 = bp:FindFirstChild(v1_nome)local ja_tem_v2 = bp:FindFirstChild(d.V2Nome)if item_v1 and item_v1.Level.Value >= 500 and not ja_tem_v2 thenif game.PlaceId == d.MarRequisito and LocalPlayer.Data.Beli.Value >= d.PrecoBeli and LocalPlayer.Data.Fragments.Value >= d.PrecoFrag thenlocal npc = Workspace.NPCs:FindFirstChild(d.NPCNome) or Workspace:FindFirstChild(d.NPCNome)if npc thenteleportar_com_bypass(npc.HumanoidRootPart.CFrame)task.wait(0.4)local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF")if remote thenremote:InvokeServer("Buy" .. d.V2Nome:gsub(" ", ""))EnviarNotificacaoDiscord("Estilo V2 Adquirido!", "Comprado automaticamente: " .. d.V2Nome, 4620411)return trueendendendendendreturn falseendToggleFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 30) ; ToggleFrame.Parent = MainFramelocal TextLabel = Instance.new("TextLabel") ; TextLabel.Size = UDim2.new(0.6, 0, 1, 0) ; TextLabel.Position = UDim2.new(0, 15, 0, 0) ; TextLabel.BackgroundTransparency = 1 ; TextLabel.Text = textoBotao ; TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255) ; TextLabel.TextSize = 10 ; TextLabel.Font = Enum.Font.GothamSemibold ; TextLabel.TextXAlignment = Enum.TextXAlignment.Left ; TextLabel.Parent = ToggleFramelocal Button = Instance.new("TextButton") ; Button.Size = UDim2.new(0.25, 0, 0.6, 0) ; Button.Position = UDim2.new(0.7, 0, 0.2, 0) ; Button.BackgroundColor3 = _G[variavelGlobal] and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(231, 76, 60) ; Button.Text = _G[variavelGlobal] and "ON" or "OFF" ; Button.TextColor3 = Color3.fromRGB(255, 255, 255) ; Button.Font = Enum.Font.GothamBold ; Button.Parent = ToggleFrameButton.MouseButton1Click:Connect(function()_G[variavelGlobal] = not _G[variavelGlobal]Button.BackgroundColor3 = _G[variavelGlobal] and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(231, 76, 60)Button.Text = _G[variavelGlobal] and "ON" or "OFF"pcall(SalvarConfiguracoes)end)endcriarBotaoToggle("AutoFarm", UDim2.new(0, 15, 0, 50), "AutoFarm", "Auto Farm Inteligente (Mares 1-3)")criarBotaoToggle("AutoGodhuman", UDim2.new(0, 15, 0, 90), "AutoGodhuman", "Auto Godhuman Completo (Alternado)")criarBotaoToggle("AutoNewWorld", UDim2.new(0, 15, 0, 130), "AutoNewWorld", "Auto New World (Mar 2)")criarBotaoToggle("AutoSpinFruit", UDim2.new(0, 15, 0, 170), "AutoSpinFruit", "Auto Gacha & Auto Store")criarBotaoToggle("StatMelee", UDim2.new(0, 15, 0, 220), "Stat_Melee", "[STATS] Auto Soco (Melee)")criarBotaoToggle("StatDefense", UDim2.new(0, 15, 0, 260), "Stat_Defense", "[STATS] Auto Vida (Defense)")criarBotaoToggle("StatSword", UDim2.new(0, 15, 0, 300), "Stat_Sword", "[STATS] Auto Espada (Sword)")criarBotaoToggle("BringMobs", UDim2.new(0, 15, 0, 350), "BringMobs", "Turbo Fast Bring Mobs")criarBotaoToggle("AntiBounty", UDim2.new(0, 15, 0, 390), "AntiBounty", "Anti-Bounty Hunter Protection")criarBotaoToggle("SafeFlyBypass", UDim2.new(0, 15, 0, 430), "SafeFlyBypass", "Safe Fly Velocity Bypass MAX")GetKeyButton.MouseButton1Click:Connect(function() if setclipboard then setclipboard(LinkLootLabs) end end)local KeyValidada = falseCheckButton.MouseButton1Click:Connect(function() if KeyInput.Text == ChaveCorreta then KeyValidada = true ; KeyFrame:Destroy() ; MainFrame.Visible = true ; pcall(CarregarConfiguracoes) EnviarNotificacaoDiscord("Hub Autenticado!", "Licença validada com sucesso.", 3066993) end end)UserInputService.InputBegan:Connect(function(ipt, proc)if not proc and ipt.KeyCode == Enum.KeyCode.RightControl and KeyValidada then MainFrame.Visible = not MainFrame.Visible endend)
-Workspace:FindFirstChild("Military Detective")if det thenteleportar_com_bypass(det.HumanoidRootPart.CFrame)task.wait(0.4)remote:InvokeServer("TravelIceIsland")endlocal admiral = Workspace.Enemies:FindFirstChild("Ice Admiral") or Workspace:FindFirstChild("Ice Admiral")if admiral and admiral:FindFirstChild("Humanoid") and admiral.Humanoid.Health > 0 thenteleportar_com_bypass(admiral.HumanoidRootPart.CFrame * CFrame.new(0, _G.DistanciaDoInimigo, 0))auto_atacar_turbo()returnendif game.PlaceId == 2747839626 thenlocal cap = Workspace.NPCs:FindFirstChild("Experienced Captain") or Workspace:FindFirstChild("Experienced Captain")if cap thenteleportar_com_bypass(cap.HumanoidRootPart.CFrame)task.wait(0.4)EnviarNotificacaoDiscord("A transitar de Mar!", "A viajar para o Second Sea.", 2306448)remote:InvokeServer("TravelToSecondSea")endendendlocal function rolar_e_guardar_gacha()local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")if remote thenremote:InvokeServer("Cousin", "Buy")task.wait(0.4)for _, item in pairs(LocalPlayer.Backpack:GetChildren()) doif string.find(item.Name, "Fruit") thenremote:InvokeServer("StoreFruit", item.Name, item)EnviarNotificacaoDiscord("Gacha Spin!", "Fruta ganha: " .. item.Name, 15105570)endendendend-- 8. MOTOR DE PRIORIDADES GERAL (LAÇO PRINCIPAL MÁXIMA FREQUÊNCIA)spawn(function()local tempo_ultimo_spin = 0while true dotask.wait(0.01)if KeyValidada thenif _G.AntiBounty then pcall(checar_anti_bounty) endpcall(executar_auto_stats)if _G.AutoFarm thenlocal comprando_v2 = pcall(verificar_e_comprar_v2_imediato)if not comprando_v2 thenlocal estilo_pendente = _G.AutoGodhuman and verificar_e_equipar_estilo_para_maestria() or nillocal material_em_falta = _G.AutoGodhuman and obter_material_em_falta() or nilif estilo_pendente thenlocal q = obter_quest_atual()executar_ciclo_de_ataque(q.NPC, q.Quest, q.ID, q.Inimigo, estilo_pendente)elseif material_em_falta and game.PlaceId == 11413812836 thenexecutar_ciclo_de_ataque(material_em_falta.NPCQuest, material_em_falta.QuestNome, material_em_falta.ID, material_em_falta.InimigoFarm, "Combat")elselocal q = obter_quest_atual()executar_ciclo_de_ataque(q.NPC, q.Quest, q.ID, q.Inimigo, "Combat")endendelseif _G.AutoNewWorld and LocalPlayer.Data.Level.Value >= 700 then pcall(fazer_quest_transicao_sea2)elseif _G.AutoSpinFruit and (tick() - tempo_ultimo_spin > 20) thenpcall(rolar_e_guardar_gacha)tempo_ultimo_spin = tick()endendendend)
+local function verificar_e_equipar_estilo_para_maestria()
+    local bp = LocalPlayer:FindFirstChild("Backpack") or LocalPlayer:FindFirstChild("Data")
+    for nome_estilo, meta in pairs(MetasMaestria) do
+        local item = bp:FindFirstChild(nome_estilo)
+        if item then
+            item.Parent = LocalPlayer.Character
+            task.wait(0.2)
+        end
+    end
+end
+
+local function farm_material_godhuman(material)
+    if not _G.AutoGodhuman then return end
+    local inimigo = material.InimigoFarm
+    local posicaoFarm = Workspace:FindFirstChild(inimigo)
+    
+    if posicaoFarm and posicaoFarm:FindFirstChild("HumanoidRootPart") then
+        local npcQuest = Workspace:FindFirstChild(material.NPCQuest)
+        if npcQuest then
+            teleportar_com_bypass(npcQuest.HumanoidRootPart.CFrame + Vector3.new(5, 0, 0))
+            task.wait(0.5)
+            
+            local remote = ReplicatedStorage:FindFirstChild("Remotes")
+            if remote then
+                remote:FireServer("TalkToNPC", material.NPCQuest, material.QuestNome)
+                task.wait(0.3)
+                remote:FireServer("StartQuest", material.QuestNome)
+            end
+        end
+    end
+end
+
+local function comprar_v2_automatico(estilo)
+    if not _G.AutoGodhuman then return end
+    local evolucao = EvolucaoEstilosV2[estilo]
+    if not evolucao then return end
+    
+    local npc = Workspace:FindFirstChild(evolucao.NPCNome)
+    if npc and npc:FindFirstChild("HumanoidRootPart") then
+        teleportar_com_bypass(npc.HumanoidRootPart.CFrame + Vector3.new(5, 0, 0))
+        task.wait(0.4)
+        
+        local remote = ReplicatedStorage:FindFirstChild("Remotes")
+        if remote then
+            remote:FireServer("BuyAbility", evolucao.V2Nome, evolucao.PrecoBeli)
+            task.wait(0.3)
+            EnviarNotificacaoDiscord("V2 Desbloqueado", "Você desbloqueou: " .. evolucao.V2Nome, 65280)
+        end
+    end
+end
+
+------------------------------------------------------------------------
+-- 6. SISTEMA DE AUTO-FARM INTEGRADO
+------------------------------------------------------------------------
+local function executar_auto_farm()
+    if not _G.AutoFarm then return end
+    
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    
+    for _, inimigo in pairs(Workspace.Enemies:GetChildren()) do
+        if inimigo:FindFirstChild("HumanoidRootPart") and inimigo.Humanoid.Health > 0 then
+            local distancia = (root.Position - inimigo.HumanoidRootPart.Position).Magnitude
+            if distancia < _G.DistanciaDoInimigo then
+                executar_bring_mobs(inimigo.Name, root.CFrame + root.CFrame.LookVector * 5)
+                auto_atacar_turbo()
+                task.wait(0.1)
+            end
+        end
+    end
+end
+
+------------------------------------------------------------------------
+-- 7. LOOP PRINCIPAL
+------------------------------------------------------------------------
+local function main_loop()
+    CarregarConfiguracoes()
+    
+    while true do
+        if LocalPlayer and LocalPlayer.Character then
+            if _G.AutoFarm then executar_auto_farm() end
+            if _G.AutoSpinFruit then executar_auto_stats() end
+            if _G.AutoGodhuman then
+                for _, material in pairs(MateriaisGodhuman) do
+                    farm_material_godhuman(material)
+                    task.wait(0.5)
+                end
+            end
+            if _G.AntiBounty then checar_anti_bounty() end
+        end
+        
+        SalvarConfiguracoes()
+        task.wait(1)
+    end
+end
+
+------------------------------------------------------------------------
+-- 8. INICIALIZAÇÃO
+------------------------------------------------------------------------
+EnviarNotificacaoDiscord("Script Iniciado", "Banana Turbo Hub v18 foi ativado com sucesso!", 3066993)
+main_loop()
