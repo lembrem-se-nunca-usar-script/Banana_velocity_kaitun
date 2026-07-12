@@ -158,12 +158,3 @@ LocalPlayer.CharacterAdded:Connect(function(NewChar)
     Character = NewChar
     HumanoidRootPart = NewChar:WaitForChild("HumanoidRootPart")
 end)
-
-print("[✓] Script rodando!")
-print("[✓] Pressione qualquer tecla para interromper (abra o console)")
-print("=" .. string.rep("=", 50))
-
--- Manter script vivo
-while true do
-    task.wait(1)
-end
